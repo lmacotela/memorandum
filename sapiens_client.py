@@ -12,7 +12,7 @@ PASSWORD = os.getenv("SAPIENS_PASSWORD")
 
 async def obtener_token() -> str:
     """Paso 1: Login para obtener el Bearer token."""
-    url = f"{BASE_URL}/api/api/Auth/Login"
+    url = f"{BASE_URL}/apitest/api/Auth/Login"
     payload = {"username": USERNAME, "password": PASSWORD}
 
     async with httpx.AsyncClient(timeout=30) as client:
