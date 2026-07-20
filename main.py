@@ -115,7 +115,7 @@ async def flujo_automatizado(request: FlujoRequest):
     for registro in registros:
         try:
             path = generar_documento(registro, titulo=request.titulo, template_name=request.template_name)
-            nombre = registro.get("nombreEmpleado") or registro.get("NombreEmpleado") or "empleado"
+            nombre = registro.get("Colaborador") or registro.get("nombreEmpleado") or registro.get("NombreEmpleado") or "empleado"
             archivos_generados.append((path, f"{nombre}.docx"))
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error generando documento: {str(e)}")
