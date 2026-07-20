@@ -9,16 +9,29 @@ OUTPUT_DIR = "output"
 
 
 def _replace_in_paragraph(paragraph, replacements: dict[str, str]):
+    """
+    Reemplaza placeholders en un párrafo.
+    Maneja correctamente placeholders partidos en múltiples runs por Word
+    (ej: ['<', 'NombreEmpleado', '>'] → fusiona primero, luego reemplaza).
+    """
+    if not paragraph.runs:
+        return
+
     full_text = "".join(run.text for run in paragraph.runs)
     if not any(key in full_text for key in replacements):
         return
+
+    # Aplicar todos los reemplazos sobre el texto completo
     new_text = full_text
     for placeholder, value in replacements.items():
         new_text = new_text.replace(placeholder, str(value))
-    if paragraph.runs:
-        paragraph.runs[0].text = new_text
-        for run in paragraph.runs[1:]:
-            run.text = ""
+
+    # Copiar el formato del primer run con texto visible
+    # y colapsar todos los demás runs para evitar duplicados
+    first_run = paragraph.runs[0]
+    first_run.text = new_text
+    for run in paragraph.runs[1:]:
+        run.text = ""
 
 
 def _replace_in_document(doc: Document, replacements: dict[str, str]):
@@ -65,17 +78,19 @@ def generar_documento(registro: dict, titulo: str, template_name: str = "memoran
     lider          = registro.get("Lider")        or ""
     fecha_formateada = _formatear_fecha(fecha_raw)
 
+    # En la plantilla, <días> aparece en el párrafo del cuerpo como la fecha
+    # del día de incumplimiento (FechaLimite), no como cantidad de faltas.
     replacements = {
         "<NombreEmpleado>": colaborador,
         "<Asunto>":         asunto,
         "<fecha>":          fecha_formateada,
-        "<días>":           cantidad_str,
+        "<días>":           fecha_formateada,   # fecha del incumplimiento
         "<Documento>":      dni,
         "<Lider>":          lider,
-        # Variantes por si la plantilla usa mayúsculas distintas
+        # Variantes en mayúsculas
         "<NOMBREEMPLEADO>": colaborador,
         "<FECHA>":          fecha_formateada,
-        "<DIAS>":           cantidad_str,
+        "<DIAS>":           fecha_formateada,
         "<DOCUMENTO>":      dni,
     }
 
@@ -83,8 +98,8 @@ def generar_documento(registro: dict, titulo: str, template_name: str = "memoran
     doc.core_properties.title = titulo
     _replace_in_document(doc, replacements)
 
-    # Nombre del archivo: "Nombre Completo - DD-MM-YYYY.docx"
-    fecha_archivo = datetime.now().strftime("%d-%m-%Y")
+    # Nombre del archivo: "Nombre Completo - DD-MM-YYYY.docx" (fecha del servicio)
+    fecha_archivo = fecha_formateada.replace("/", "-") if fecha_formateada else datetime.now().strftime("%d-%m-%Y")
     nombre_archivo = f"{_nombre_seguro(colaborador)} - {fecha_archivo}.docx"
     output_path = os.path.join(OUTPUT_DIR, nombre_archivo)
     doc.save(output_path)
