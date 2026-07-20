@@ -25,12 +25,14 @@ async def obtener_token() -> str:
     if data.get("Code") == 404:
         raise ValueError(f"Login fallido: {data.get('Message', 'Credenciales incorrectas')}")
 
-    # Extraer el token del response — ajusta el campo según la respuesta real
+    # Extraer el token del response
+    objeto = data.get("Objeto") or {}
     token = (
         data.get("token")
         or data.get("Token")
         or data.get("Dato")
-        or data.get("Objeto", {}).get("token") if isinstance(data.get("Objeto"), dict) else None
+        or (objeto.get("AccessToken") if isinstance(objeto, dict) else None)
+        or (objeto.get("token") if isinstance(objeto, dict) else None)
     )
 
     if not token:
